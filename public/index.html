@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>声笺 · Transcript Studio</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/"><span class="brand-icon">声</span><span>声笺<small>TRANSCRIPT STUDIO</small></span></a>
+  <div class="section-label">工作空间</div><div class="nav-item"><span>◉</span> 录音转写 <span class="nav-count">01</span></div>
+  <div class="settings">
+    <div class="section-label">模型与连接</div>
+    <label for="provider">服务商</label><select id="provider"><option value="siliconflow">SiliconFlow · 硅基流动</option><option value="openai">OpenAI API</option></select>
+    <label for="key">API Key</label><input id="key" type="password" placeholder="粘贴当前服务商的 Key" autocomplete="off" spellcheck="false"><p class="hint">Key 仅用于当前页面会话，也可通过服务端环境变量提供。</p>
+    <p class="hint" id="providerHint"></p>
+  </div>
+  <section class="panel model-panel" aria-label="模型选择与价格">
+    <div class="panel-top"><h2>模型选择</h2><span class="tag">输入搜索 · 支持自定义模型</span></div>
+    <div class="model-settings-layout">
+      <div class="model-selectors">
+        <div class="model-field" id="asrField">
+          <label for="asrModel">语音识别模型 <span>TRANSCRIPTION</span></label>
+          <div class="model-input-row"><input id="asrModel" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="asrOptions" autocomplete="off" spellcheck="false"><button type="button" class="model-toggle" id="asrToggle" aria-label="展开语音识别模型" aria-controls="asrOptions" aria-expanded="false">⌄</button></div>
+          <div class="model-options" id="asrOptions" role="listbox" aria-label="语音识别模型选项" hidden></div>
+          <p class="hint">键入名称搜索；按 Enter 选择或加入自定义模型。</p>
+          <section class="model-price-card" id="asrDetails" aria-label="语音识别模型价格详情" aria-live="polite"></section>
+        </div>
+        <div class="model-field" id="chatField">
+          <label for="chatModel">聊天模型 <span>CONVERSATION</span></label>
+          <div class="model-input-row"><input id="chatModel" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="chatOptions" autocomplete="off" spellcheck="false"><button type="button" class="model-toggle" id="chatToggle" aria-label="展开聊天模型" aria-controls="chatOptions" aria-expanded="false">⌄</button></div>
+          <div class="model-options" id="chatOptions" role="listbox" aria-label="聊天模型选项" hidden></div>
+          <p class="hint">仅保存模型名称与选择；API Key 不会保存。</p>
+          <section class="model-price-card" id="chatDetails" aria-label="聊天模型价格详情" aria-live="polite"></section>
+        </div>
+      </div>
+      <div class="model-details" aria-live="polite">
+        <p class="price-source">价格按你提供的截图录入，非实时查询。切换模型后同步显示；实际费用以服务商账单为准。</p>
+      </div>
+    </div>
+  </section>
+  <div class="sidebar-bottom"><span class="dot"></span> 本地工作空间 <small>文件仅在转写时发送到所选 API。<br>关闭前请下载需要保留的内容。</small></div>
+</aside>
+<main>
+  <header><div><div class="eyebrow">AUDIO → WORDS → IDEAS</div><h1>让每一段声音，成为文字。</h1><p>上传录音或视频，转写、整理，再带走你的内容。</p></div><div class="local-badge"><span class="dot"></span> LOCAL APP</div></header>
+  <div class="workspace">
+    <section class="main-column">
+      <section class="panel upload-panel">
+        <div class="panel-top"><h2><span class="step">01</span> 上传音视频</h2><span class="tag">自动提取音轨</span></div>
+        <label class="dropzone" id="dropzone" for="file" tabindex="0"><span class="upload-icon">↥</span><strong>拖放文件到这里，或点击选择</strong><span>MP3 · M4A · MP4 · WAV · WEBM · FLAC · OGG 等</span><small>本地上传上限 1 GB · 长录音自动分段</small></label>
+        <input id="file" type="file" accept="audio/*,video/*,.amr,.wma,.opus" hidden>
+        <div id="fileInfo" class="file-info" hidden><span id="fileName"></span><span id="fileSize"></span></div>
+        <audio id="player" controls hidden></audio>
+        <div class="timestamp-settings"><label for="chunkSeconds">时间戳间隔</label><select id="chunkSeconds"><option value="30">30 秒 · 更细</option><option value="60" selected>1 分钟 · 测试推荐</option><option value="300">5 分钟</option><option value="600">10 分钟 · 请求更少</option></select><span>每段一次 API 请求；时间戳为分段范围。</span></div>
+        <div class="upload-actions"><p class="hint">视频只转写音轨，不识别画面。点击后将调用所选 API。</p><button class="primary" id="transcribe" disabled>开始转写 <span>↗</span></button></div>
+        <div id="status" class="status" role="status" aria-live="polite">选择文件，即可开始。</div><progress id="progress" max="100" value="0" hidden></progress>
+      </section>
+      <section class="panel editor-panel">
+        <div class="panel-top"><h2><span class="step">02</span> 转写预览</h2><span id="wordCount" class="tag">0 字</span></div>
+        <div class="editor-toolbar"><div class="tabs"><button id="editTab" class="tab active">编辑</button><button id="previewTab" class="tab">预览</button></div><div><button class="text-button" id="importButton">导入文字</button><button class="text-button" id="copy">复制</button><button class="text-button" id="restore" disabled>恢复原文</button></div></div>
+        <input id="textFile" type="file" accept=".txt,.md,.json" hidden>
+        <section id="timingPanel" class="timing-panel" aria-label="音频分段覆盖检查" hidden><div id="timingSummary" class="timing-summary" aria-live="polite"></div><p class="hint">点击时间段定位原录音。处理覆盖不等于逐字完整；请听检空结果、分段边界与录音结尾。</p><div id="timingSegments" class="timing-segments"></div><p id="timingNote" class="hint"></p></section>
+        <textarea id="transcript" aria-label="转写内容编辑器" placeholder="转写结果将出现在这里。&#10;&#10;你也可以粘贴已有文字，直接编辑、问答或下载。"></textarea>
+        <div id="preview" class="markdown-preview" hidden></div>
+        <div class="export-bar"><span>自动保存到项目 download 文件夹</span><div><button class="secondary" id="downloadMd" disabled>↓ Markdown</button><button class="primary" id="downloadDocx" disabled>↓ Word .docx</button></div></div>
+        <div id="exportStatus" class="export-status" role="status" aria-live="polite">保存目录：D:\Codex_Projects\sikiconflow\download</div>
+      </section>
+    </section>
+    <section class="panel chat-panel">
+      <div class="panel-top"><h2><span class="step">03</span> 和内容聊一聊</h2><button class="text-button" id="clearChat">清空</button></div>
+      <div class="chat-context"><span class="dot"></span> 问答会参考左侧当前文字</div>
+      <div id="messages" class="messages" role="log" aria-live="polite"><div class="chat-welcome"><span class="spark">✳</span><h3>从记录，到理解。</h3><p>提炼重点、整理会议纪要，<br>或问一个你关心的问题。</p></div></div>
+      <div class="suggestions"><button data-prompt="请根据转写文字提炼要点，使用 Markdown 列表。">提炼要点 ↗</button><button data-prompt="请根据转写文字整理会议纪要，区分讨论、结论与待办。未提及的信息请标记为未提及。">会议纪要 ↗</button><button data-prompt="请为转写文字补充标点并合理分段，保留原意，不添加事实。">整理文字 ↗</button></div>
+      <form id="chatForm"><textarea id="message" rows="3" placeholder="输入问题，或发送一条消息…" aria-label="聊天消息"></textarea><div class="composer-bottom"><span>Ctrl + Enter 发送</span><button id="sendChat" class="primary" type="submit">发送 ↑</button></div></form>
+    </section>
+  </div>
+  <footer>声笺 <span>·</span> 把声音留给表达，把整理交给工具。</footer>
+</main><div id="toast" role="status" hidden></div>
+</body></html>

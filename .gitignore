@@ -1,0 +1,11 @@
+tools/python/
+.runtime/
+node_modules/
+*.log
+.env
+download/
+*.lnk
+*.key
+*.pem
+config.local.*
+secrets/
